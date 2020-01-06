@@ -34,7 +34,7 @@ const drawScore = function() {
 
 // Отменяем действие setInterval и печатаем сообщение «Конец игры»
 const gameOver = function() {
-    clearInterval(intervalId);
+    playing = false;
     ctx.font = '60px Courier';
     ctx.fillStyle = 'Black';
     ctx.textAlign = 'center';
@@ -93,8 +93,12 @@ const Snake = function() {
 
 // Рисуем квадратик для каждого сегмента тела змейки
 Snake.prototype.draw = function() {
-    for (let i = 0; i < this.segments.length; i++) {
-        this.segments[i].drawSquare('Blue');
+    this.segments[0].drawSquare('Red');
+    for (let i = 1; i < this.segments.length; i++) {
+        this.segments[i].drawSquare('Gold');
+        if (i % 2 != 0) {
+            this.segments[i].drawSquare('Black');
+        }
     }
 };
 
@@ -123,7 +127,8 @@ Snake.prototype.move = function() {
     this.segments.unshift(newHead);
     if (newHead.equal(apple.position)) {
         score++;
-        apple.move();
+        animationTime -= 5;
+        apple.move(this.segments);
     } else {
         this.segments.pop();
     }
@@ -175,10 +180,18 @@ Apple.prototype.draw = function() {
 };
 
 // Перемещаем яблоко в случайную позицию
-Apple.prototype.move = function() {
+Apple.prototype.move = function(occupiedBlocks) {
     const randomCol = Math.floor(Math.random() * (widthInBlocks - 2)) + 1;
     const randomRow = Math.floor(Math.random() * (heightInBlocks - 2)) + 1;
     this.position = new Block(randomCol, randomRow);
+
+    // Проверяем не передвинули лы мы яблоко в ячейку занятую сейчас телом змейки
+    for (let i = 0; i < occupiedBlocks.length; i++) {
+        if (this.position.equal(occupiedBlocks[i])) {
+            this.move(occupiedBlocks); // Вызываем метод move повторно
+            return;
+        }
+    }
 };
 
 // Создаем объект-змейку и объект-яблоко
@@ -186,14 +199,23 @@ const snake = new Snake();
 const apple = new Apple();
 
 // Запускаем функцию анимации через setInterval
-const intervalId = setInterval(function() {
+let playing = true;
+let animationTime = 100;
+// Создаем функцию игрового цикла, вызывающую саму себя используя setTimeout
+const gameLoop = function() {
     ctx.clearRect(0, 0, width, height);
     drawScore();
     snake.move();
     snake.draw();
     apple.draw();
     drawBorder();
-}, 100);
+    // Устанавливается в false функцией gameOver
+    if (playing) {
+        setTimeout(gameLoop, animationTime);
+    }
+};
+// Начинаем игровой цикл
+gameLoop();
 
 // Преобразуем коды клавиш в направления
 const directions = {
